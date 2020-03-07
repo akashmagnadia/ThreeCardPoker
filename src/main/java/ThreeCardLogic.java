@@ -20,6 +20,10 @@ public class ThreeCardLogic {
         int[] tempValueArray = {card1Value, card2Value, card3Value};
         Arrays.sort(tempValueArray); //gets sort from small to large value
 
+        card1Value = tempValueArray[0];
+        card2Value = tempValueArray[1];
+        card3Value = tempValueArray[2];
+
         // check straight flush
         if (((card1Value + 1) == card2Value) && ((card2Value + 1) == card3Value)) {
             if ((card1Suit == card2Suit) && (card2Suit == card3Suit)) {

@@ -73,6 +73,11 @@ public class ThreeCardPokerGame extends Application {
 	private Boolean showScene1;
 	private Boolean player1Done;
 	private Boolean player2Done;
+	private Boolean player1Folded;
+	private Boolean player1Played;
+	private Boolean player2Folded;
+	private Boolean player2Played;
+
 
 	private double twoMessageWait;
 	private double threeMessageWait;
@@ -100,7 +105,7 @@ public class ThreeCardPokerGame extends Application {
 	Image backgroundImage;
 	BackgroundSize bgSize;
 	BackgroundImage bgImage;
-	 Background background;
+	Background background;
 
 	public static void main(String[] args) {
 		//TODO: make sure methods and members specified are how they are specified in the PDF
@@ -110,7 +115,7 @@ public class ThreeCardPokerGame extends Application {
 	//feel free to remove the starter code from this method
 	@Override
 	public void start(Stage primaryStage) throws Exception {
-		primaryStage.setTitle("Let's Play Three Card Poker!!!");
+		primaryStage.setTitle("Let's Play Three Card Poker!! - made by Akash Magnadia");
 
 		HashMap<String, Scene> sceneMap = new HashMap<String, Scene>();
 
@@ -120,8 +125,14 @@ public class ThreeCardPokerGame extends Application {
 		player1Done = false;
 		player2Done = false;
 		showScene1 = true;
-		threeMessageWait = 2; //2 seconds
 
+		player1Played = false;
+		player1Folded = false;
+		player2Played = false;
+		player2Folded = false;
+
+		twoMessageWait = 5; //5 seconds
+		threeMessageWait = 5; //5 seconds
 
 		//building menubar
 		menu = new Menu("Options");
@@ -147,6 +158,11 @@ public class ThreeCardPokerGame extends Application {
 			player2Playing = true;
 			player1Done = false;
 			player2Done = false;
+			player1Played = false;
+			player1Folded = false;
+			player2Played = false;
+			player2Folded = false;
+
 
 			dealerCard1ImageView.setImage(new Image("blue_back.jpg"));
 			dealerCard2ImageView.setImage(new Image("blue_back.jpg"));
@@ -172,10 +188,10 @@ public class ThreeCardPokerGame extends Application {
 
 			player1Title.setDisable(false);
 			player2Title.setDisable(false);
-			player1PlayButton.setDisable(false);
-			player1FoldButton.setDisable(false);
-			player2PlayButton.setDisable(false);
-			player2FoldButton.setDisable(false);
+			player1PlayButton.setDisable(true);
+			player1FoldButton.setDisable(true);
+			player2PlayButton.setDisable(true);
+			player2FoldButton.setDisable(true);
 
 			messageBoard.setText("Hover over text fields or buttons");
 			player1Status.setText("Playing");
@@ -203,15 +219,16 @@ public class ThreeCardPokerGame extends Application {
 	public void listenForActions() {
 		dealerDealButton.setOnAction(actionEvent -> {
 			theDealer.dealersHand = theDealer.dealHand();
+			playerOne.hand = theDealer.dealHand();
+			playerTwo.hand = theDealer.dealHand();
+
 			if (player1Playing) {
-				playerOne.hand = theDealer.dealHand();
 				player1Done = false;
 			} else {
 				player1Done = true; //Player 1 will always be done if not playing
 			}
 			if (player2Playing) {
 				player2Done = false;
-				playerTwo.hand = theDealer.dealHand();
 			} else {
 				player2Done = true; //Player 2 will always be done if not playing
 			}
@@ -220,8 +237,14 @@ public class ThreeCardPokerGame extends Application {
 			showPlayer2Cards();
 
 			//activate both buttons
-			player1Title.setDisable(false);
-			player2Title.setDisable(false);
+			player1PlayButton.setDisable(false);
+			player1FoldButton.setDisable(false);
+			player2PlayButton.setDisable(false);
+			player2FoldButton.setDisable(false);
+
+			updatePlayerStatus();
+
+
 		});
 
 		player1Title.setOnAction(actionEvent -> {
@@ -241,6 +264,7 @@ public class ThreeCardPokerGame extends Application {
 				player1Done = false;
 				player1Playing = true;
 				updatePlayerStatus();
+				showPlayer1Cards();
 			}
 		});
 
@@ -261,6 +285,7 @@ public class ThreeCardPokerGame extends Application {
 				player2Done = false;
 				player2Playing = true;
 				updatePlayerStatus();
+				showPlayer2Cards();
 			}
 		});
 
@@ -280,14 +305,39 @@ public class ThreeCardPokerGame extends Application {
 						messageBoard.setText("Player one's play wager must be equal to ante wager");
 					} else {
 						player1Done = true; //player 1 has taken the turn
+						player1Played = true;
+						playerOne.anteBet = anteBet;
+						playerOne.playBet = anteBet;
+
+						//player one don't need buttons now
+						player1PlayButton.setDisable(true);
+						player1FoldButton.setDisable(true);
 
 						if (player2Done) {
 							showDealersCards(); //since both players are done
+
+							//take the bet
+							playerOne.totalWinnings = playerOne.totalWinnings - playerOne.anteBet;
+							playerOne.totalWinnings = playerOne.totalWinnings - playerOne.playBet;
+
+							//get pair plus bet if put down
+							if (!(player1PairPlusWager.getText().equals(""))) {
+								int pairPlusBet = Integer.parseInt(player1PairPlusWager.getText());
+								if (!((pairPlusBet < 5) || (pairPlusBet > 25))) {
+									playerOne.pairPlusBet = pairPlusBet;
+								}
+							} else {
+								playerOne.pairPlusBet = 0;
+							}
 
 							//evaluate play and pair plus bet
 							int player1TypeHand = ThreeCardLogic.evalHand(playerOne.hand);
 							int player1PairPlusWon = ThreeCardLogic.evalPPWinnings(playerOne.hand, playerOne.pairPlusBet);
 							int player1WinningPerson = ThreeCardLogic.compareHands(theDealer.dealersHand, playerOne.hand);
+
+							//calculate pair plus bet in winning
+							playerOne.totalWinnings -= playerOne.pairPlusBet;
+							playerOne.totalWinnings += player1PairPlusWon;
 
 							String player1TypeHandMessage;
 							if (player1TypeHand == 0) {
@@ -309,21 +359,49 @@ public class ThreeCardPokerGame extends Application {
 							}
 
 							String player1PairPlusWonMessage = "Player one pair plus winning is " + player1PairPlusWon;
-							String player1Player1WinningPersonMessage;
+							String player1WinningPersonMessage;
 
 							if (player1WinningPerson == 0) {
-								player1Player1WinningPersonMessage = "Tie between Dealer and Player One.";
+								player1WinningPersonMessage = "Tie between Dealer and Player One.";
+								//dealer didn't have queen or higher
+								//so return the bets
+								playerOne.totalWinnings = playerOne.totalWinnings + playerOne.anteBet;
+								playerOne.totalWinnings = playerOne.totalWinnings + playerOne.playBet;
 							} else if (player1WinningPerson == 1) {
-								player1Player1WinningPersonMessage = "Player One lost to the dealer";
+								player1WinningPersonMessage = "Player One lost to the dealer";
+								//nothing happens, lost money
 							} else {
-								player1Player1WinningPersonMessage = "The Dealer lost to player one";
+								player1WinningPersonMessage = "The Dealer lost to player one";
+								//player get double what they put for ante bet and play bet
+								playerOne.totalWinnings = playerOne.totalWinnings + (playerOne.anteBet * 2);
+								playerOne.totalWinnings = playerOne.totalWinnings + (playerOne.playBet * 2);
 							}
 
 							if (player2Playing) {
+
+								//take the bet
+								playerTwo.totalWinnings = playerTwo.totalWinnings - playerTwo.anteBet;
+								playerTwo.totalWinnings = playerTwo.totalWinnings - playerTwo.playBet;
+
+								//get pair plus bet if put down
+								if (!(player2PairPlusWager.getText().equals(""))) {
+									int pairPlusBet = Integer.parseInt(player2PairPlusWager.getText());
+									if (!((pairPlusBet < 5) || (pairPlusBet > 25))) {
+										playerTwo.pairPlusBet = pairPlusBet;
+									}
+								} else {
+									playerTwo.pairPlusBet = 0;
+								}
+
 								//show both player messages because both players are done
+
 								int player2TypeHand = ThreeCardLogic.evalHand(playerTwo.hand);
 								int player2PairPlusWon = ThreeCardLogic.evalPPWinnings(playerTwo.hand, playerTwo.pairPlusBet);
 								int player2WinningPerson = ThreeCardLogic.compareHands(theDealer.dealersHand, playerTwo.hand);
+
+								//calculate pair plus bet in winning
+								playerTwo.totalWinnings -= playerTwo.pairPlusBet;
+								playerTwo.totalWinnings += player2PairPlusWon;
 
 								String player2TypeHandMessage;
 								if (player2TypeHand == 0) {
@@ -345,28 +423,51 @@ public class ThreeCardPokerGame extends Application {
 								}
 
 								String player2PairPlusWonMessage = "Player two pair plus winning is " + player2PairPlusWon;
-								String player2Player1WinningPersonMessage;
+								String player2WinningPersonMessage;
 
 								if (player2WinningPerson == 0) {
-									player2Player1WinningPersonMessage = "Tie between Dealer and Player two.";
+									player2WinningPersonMessage = "Tie between Dealer and Player two.";
+									//dealer didn't have queen or higher
+									//so return the bets
+									playerTwo.totalWinnings = playerTwo.totalWinnings + playerTwo.anteBet;
+									playerTwo.totalWinnings = playerTwo.totalWinnings + playerTwo.playBet;
 								} else if (player2WinningPerson == 1) {
-									player2Player1WinningPersonMessage = "Player two lost to the dealer";
+									player2WinningPersonMessage = "Player two lost to the dealer";
+									//nothing happens, lost money
 								} else {
-									player2Player1WinningPersonMessage = "The Dealer lost to player two";
+									player2WinningPersonMessage = "The Dealer lost to player two";
+									//player get double what they put for ante bet and play bet
+									playerTwo.totalWinnings = playerTwo.totalWinnings + (playerTwo.anteBet * 2);
+									playerTwo.totalWinnings = playerTwo.totalWinnings + (playerTwo.playBet * 2);
 								}
 
-								show3Message(
-										player1TypeHandMessage + " " + player2TypeHandMessage,
-										player1PairPlusWonMessage + " " + player2PairPlusWonMessage,
-										player1Player1WinningPersonMessage + " " + player2Player1WinningPersonMessage,
-										threeMessageWait);
+								//check if player 2 played or folded and show message accordingly
+								if (player2Played) {
+									show3Message(
+											player1TypeHandMessage + " and " + player2TypeHandMessage,
+											player1PairPlusWonMessage + " and " + player2PairPlusWonMessage,
+											player1WinningPersonMessage + " and " + player2WinningPersonMessage,
+											threeMessageWait);
+									endOfRound(); //when one round is over
+								}
+
+								if (player2Folded) {
+									show3Message(
+											player1TypeHandMessage + " and " + player2TypeHandMessage,
+											player1PairPlusWonMessage + " and " + player2PairPlusWonMessage,
+											player1WinningPersonMessage,
+											threeMessageWait);
+									endOfRound(); //when one round is over
+								}
+
 							} else {
 								//show only player 1 message
 								show3Message(
 										player1TypeHandMessage,
 										player1PairPlusWonMessage,
-										player1Player1WinningPersonMessage,
+										player1WinningPersonMessage,
 										threeMessageWait);
+								endOfRound(); //when one round is over
 							}
 						} else {
 							//wait for player 2
@@ -392,7 +493,13 @@ public class ThreeCardPokerGame extends Application {
 					messageBoard.setText("Player one's pair plus wager must be between 5 and 25");
 				} else {
 					player1Done = true; //player 1 has taken the turn
+					player1Folded = true;
 					player1PairPlusWager.setText(String.valueOf(pairPlusBet)); //put ante bet in play wager
+					playerOne.pairPlusBet = pairPlusBet;
+
+					//player one don't need buttons now
+					player1PlayButton.setDisable(true);
+					player1FoldButton.setDisable(true);
 
 					player1PlayWager.clear();
 					player1AnteBets.clear();
@@ -402,6 +509,10 @@ public class ThreeCardPokerGame extends Application {
 						//evaluate pair plus bet only
 						int player1TypeHand = ThreeCardLogic.evalHand(playerOne.hand);
 						int player1PairPlusWon = ThreeCardLogic.evalPPWinnings(playerOne.hand, playerOne.pairPlusBet);
+
+						//calculate pair plus bet in winning
+						playerOne.totalWinnings -= playerOne.pairPlusBet;
+						playerOne.totalWinnings += player1PairPlusWon;
 
 						String player1TypeHandMessage;
 						if (player1TypeHand == 0) {
@@ -425,9 +536,29 @@ public class ThreeCardPokerGame extends Application {
 						String player1PairPlusWonMessage = "Player one pair plus winning is " + player1PairPlusWon;
 
 						if (player2Playing) {
+
+							//take the bet
+							playerTwo.totalWinnings = playerTwo.totalWinnings - playerTwo.anteBet;
+							playerTwo.totalWinnings = playerTwo.totalWinnings - playerTwo.playBet;
+
+							//get pair plus bet if put down
+							if (!(player2PairPlusWager.getText().equals(""))) {
+								int player2PairPlusBet = Integer.parseInt(player2PairPlusWager.getText());
+								if (!((player2PairPlusBet < 5) || (player2PairPlusBet > 25))) {
+									playerTwo.pairPlusBet = player2PairPlusBet;
+								}
+							} else {
+								playerTwo.pairPlusBet = 0;
+							}
+
 							//show both player messages because both players are done
 							int player2TypeHand = ThreeCardLogic.evalHand(playerTwo.hand);
 							int player2PairPlusWon = ThreeCardLogic.evalPPWinnings(playerTwo.hand, playerTwo.pairPlusBet);
+							int player2WinningPerson = ThreeCardLogic.compareHands(theDealer.dealersHand, playerTwo.hand);
+
+							//calculate pair plus bet in winning
+							playerTwo.totalWinnings -= playerTwo.pairPlusBet;
+							playerTwo.totalWinnings += player2PairPlusWon;
 
 							String player2TypeHandMessage;
 							if (player2TypeHand == 0) {
@@ -446,17 +577,49 @@ public class ThreeCardPokerGame extends Application {
 							}
 
 							String player2PairPlusWonMessage = "Player two pair plus winning is " + player2PairPlusWon;
+							String player2WinningPersonMessage;
 
-							show2Message(
-									player1TypeHandMessage + " " + player2TypeHandMessage,
-									player1PairPlusWonMessage + " " + player2PairPlusWonMessage,
-									twoMessageWait);
+							if (player2WinningPerson == 0) {
+								player2WinningPersonMessage = "Tie between Dealer and Player two.";
+								//dealer didn't have queen or higher
+								//so return the bets
+								playerTwo.totalWinnings = playerTwo.totalWinnings + playerTwo.anteBet;
+								playerTwo.totalWinnings = playerTwo.totalWinnings + playerTwo.playBet;
+							} else if (player2WinningPerson == 1) {
+								player2WinningPersonMessage = "Player two lost to the dealer";
+								//nothing happens, lost money
+							} else {
+								player2WinningPersonMessage = "The Dealer lost to player two";
+								//player get double what they put for ante bet and play bet
+								playerTwo.totalWinnings = playerTwo.totalWinnings + (playerTwo.anteBet * 2);
+								playerTwo.totalWinnings = playerTwo.totalWinnings + (playerTwo.playBet * 2);
+							}
+
+							//check if player 2 played or folded and show message accordingly
+							if (player2Played) {
+								show3Message(
+										player1TypeHandMessage + " and " + player2TypeHandMessage,
+										player1PairPlusWonMessage + " and " + player2PairPlusWonMessage,
+										player2WinningPersonMessage,
+										threeMessageWait);
+								endOfRound(); //when one round is over
+							}
+
+							if (player2Folded) {
+								show2Message(
+										player1TypeHandMessage + " and " + player2TypeHandMessage,
+										player1PairPlusWonMessage + " and " + player2PairPlusWonMessage,
+										twoMessageWait);
+								endOfRound(); //when one round is over
+							}
+
 						} else {
 							//show only player 1 message
 							show2Message(
 									player1TypeHandMessage,
 									player1PairPlusWonMessage,
 									twoMessageWait);
+							endOfRound(); //when one round is over
 						}
 					} else {
 						//wait for player 2
@@ -484,14 +647,39 @@ public class ThreeCardPokerGame extends Application {
 						messageBoard.setText("Player one's play wager must be equal to ante wager");
 					} else {
 						player2Done = true; //player 1 has taken the turn
+						player2Played = true;
+						playerTwo.anteBet = anteBet;
+						playerTwo.playBet = anteBet;
+
+						//player two don't need buttons now
+						player2PlayButton.setDisable(true);
+						player2FoldButton.setDisable(true);
 
 						if (player1Done) {
 							showDealersCards(); //since both players are done
+
+							//take the bet
+							playerTwo.totalWinnings = playerTwo.totalWinnings - playerTwo.anteBet;
+							playerTwo.totalWinnings = playerTwo.totalWinnings - playerTwo.playBet;
+
+							//get pair plus bet if put down
+							if (!(player2PairPlusWager.getText().equals(""))) {
+								int pairPlusBet = Integer.parseInt(player2PairPlusWager.getText());
+								if (!((pairPlusBet < 5) || (pairPlusBet > 25))) {
+									playerTwo.pairPlusBet = pairPlusBet;
+								}
+							} else {
+								playerTwo.pairPlusBet = 0;
+							}
 
 							//evaluate play and pair plus bet
 							int player2TypeHand = ThreeCardLogic.evalHand(playerTwo.hand);
 							int player2PairPlusWon = ThreeCardLogic.evalPPWinnings(playerTwo.hand, playerTwo.pairPlusBet);
 							int player2WinningPerson = ThreeCardLogic.compareHands(theDealer.dealersHand, playerTwo.hand);
+
+							//calculate pair plus bet in winning
+							playerTwo.totalWinnings -= playerTwo.pairPlusBet;
+							playerTwo.totalWinnings += player2PairPlusWon;
 
 							String player2TypeHandMessage;
 							if (player2TypeHand == 0) {
@@ -513,21 +701,48 @@ public class ThreeCardPokerGame extends Application {
 							}
 
 							String player2PairPlusWonMessage = "Player two pair plus winning is " + player2PairPlusWon;
-							String player2Player1WinningPersonMessage;
+							String player2WinningPersonMessage;
 
 							if (player2WinningPerson == 0) {
-								player2Player1WinningPersonMessage = "Tie between Dealer and Player two.";
+								player2WinningPersonMessage = "Tie between Dealer and Player two.";
+								//dealer didn't have queen or higher
+								//so return the bets
+								playerTwo.totalWinnings = playerTwo.totalWinnings + playerTwo.anteBet;
+								playerTwo.totalWinnings = playerTwo.totalWinnings + playerTwo.playBet;
 							} else if (player2WinningPerson == 1) {
-								player2Player1WinningPersonMessage = "Player two lost to the dealer";
+								player2WinningPersonMessage = "Player two lost to the dealer";
+								//nothing happens, lost money
 							} else {
-								player2Player1WinningPersonMessage = "The Dealer lost to player two";
+								player2WinningPersonMessage = "The Dealer lost to player two";
+								//player get double what they put for ante bet and play bet
+								playerTwo.totalWinnings = playerTwo.totalWinnings + (playerTwo.anteBet * 2);
+								playerTwo.totalWinnings = playerTwo.totalWinnings + (playerTwo.playBet * 2);
 							}
 
 							if (player1Playing) {
+
+								//take the bet
+								playerOne.totalWinnings = playerOne.totalWinnings - playerOne.anteBet;
+								playerOne.totalWinnings = playerOne.totalWinnings - playerOne.playBet;
+
+								//get pair plus bet if put down
+								if (!(player1PairPlusWager.getText().equals(""))) {
+									int pairPlusBet = Integer.parseInt(player1PairPlusWager.getText());
+									if (!((pairPlusBet < 5) || (pairPlusBet > 25))) {
+										playerOne.pairPlusBet = pairPlusBet;
+									}
+								} else {
+									playerOne.pairPlusBet = 0;
+								}
+
 								//show both player messages because both players are done
 								int player1TypeHand = ThreeCardLogic.evalHand(playerOne.hand);
 								int player1PairPlusWon = ThreeCardLogic.evalPPWinnings(playerOne.hand, playerOne.pairPlusBet);
 								int player1WinningPerson = ThreeCardLogic.compareHands(theDealer.dealersHand, playerOne.hand);
+
+								//calculate pair plus bet in winning
+								playerOne.totalWinnings -= playerOne.pairPlusBet;
+								playerOne.totalWinnings += player1PairPlusWon;
 
 								String player1TypeHandMessage;
 								if (player1TypeHand == 0) {
@@ -549,29 +764,52 @@ public class ThreeCardPokerGame extends Application {
 								}
 
 								String player1PairPlusWonMessage = "Player one pair plus winning is " + player1PairPlusWon;
-								String player1Player1WinningPersonMessage;
+								String player1WinningPersonMessage;
 
 								if (player1WinningPerson == 0) {
-									player1Player1WinningPersonMessage = "Tie between Dealer and Player One.";
+									player1WinningPersonMessage = "Tie between Dealer and Player One.";
+									//dealer didn't have queen or higher
+									//so return the bets
+									playerOne.totalWinnings = playerOne.totalWinnings + playerOne.anteBet;
+									playerOne.totalWinnings = playerOne.totalWinnings + playerOne.playBet;
 								} else if (player1WinningPerson == 1) {
-									player1Player1WinningPersonMessage = "Player One lost to the dealer";
+									player1WinningPersonMessage = "Player One lost to the dealer";
+									//nothing happens, lost money
 								} else {
-									player1Player1WinningPersonMessage = "The Dealer lost to player one";
+									player1WinningPersonMessage = "The Dealer lost to player one";
+									//player get double what they put for ante bet and play bet
+									playerOne.totalWinnings = playerOne.totalWinnings + (playerOne.anteBet * 2);
+									playerOne.totalWinnings = playerOne.totalWinnings + (playerOne.playBet * 2);
 								}
 
-								show3Message(
-										player1TypeHandMessage + " " + player2TypeHandMessage,
-										player1PairPlusWonMessage + " " + player2PairPlusWonMessage,
-										player1Player1WinningPersonMessage + " " + player2Player1WinningPersonMessage,
-										threeMessageWait);
+								//check if player 2 played or folded and show message accordingly
+								if (player1Played) {
+									show3Message(
+											player1TypeHandMessage + " and " + player2TypeHandMessage,
+											player1PairPlusWonMessage + " and " + player2PairPlusWonMessage,
+											player1WinningPersonMessage + " and " + player2WinningPersonMessage,
+											threeMessageWait);
+									endOfRound(); //when one round is over
+								}
+
+								if (player2Folded) {
+									show3Message(
+											player1TypeHandMessage + " and " + player2TypeHandMessage,
+											player1PairPlusWonMessage + " and " + player2PairPlusWonMessage,
+											player1WinningPersonMessage,
+											threeMessageWait);
+									endOfRound(); //when one round is over
+								}
+								endOfRound(); //when one round is over
 							}
 							else {
 								//show only player 2 message
 								show3Message(
 										player2TypeHandMessage,
 										player2PairPlusWonMessage,
-										player2Player1WinningPersonMessage,
+										player2WinningPersonMessage,
 										threeMessageWait);
+								endOfRound(); //when one round is over
 							}
 
 						} else {
@@ -598,7 +836,13 @@ public class ThreeCardPokerGame extends Application {
 					messageBoard.setText("Player two's pair plus wager must be between 5 and 25");
 				} else {
 					player2Done = true; //player 2 has taken the turn
+					player2Folded = true;
 					player2PairPlusWager.setText(String.valueOf(pairPlusBet)); //put ante bet in play wager
+					playerTwo.pairPlusBet = pairPlusBet;
+
+					//player two don't need buttons now
+					player2PlayButton.setDisable(true);
+					player2FoldButton.setDisable(true);
 
 					player2PlayWager.clear();
 					player2AnteBets.clear();
@@ -609,6 +853,10 @@ public class ThreeCardPokerGame extends Application {
 						//evaluate pair plus bet only
 						int player2TypeHand = ThreeCardLogic.evalHand(playerTwo.hand);
 						int player2PairPlusWon = ThreeCardLogic.evalPPWinnings(playerTwo.hand, playerTwo.pairPlusBet);
+
+						//calculate pair plus bet in winning
+						playerTwo.totalWinnings -= playerTwo.pairPlusBet;
+						playerTwo.totalWinnings += player2PairPlusWon;
 
 						String player2TypeHandMessage;
 						if (player2TypeHand == 0) {
@@ -633,9 +881,29 @@ public class ThreeCardPokerGame extends Application {
 
 
 						if (player1Playing) {
+
+							//take the bet
+							playerOne.totalWinnings = playerOne.totalWinnings - playerOne.anteBet;
+							playerOne.totalWinnings = playerOne.totalWinnings - playerOne.playBet;
+
 							//show both player messages because both players are done
 							int player1TypeHand = ThreeCardLogic.evalHand(playerOne.hand);
 							int player1PairPlusWon = ThreeCardLogic.evalPPWinnings(playerOne.hand, playerOne.pairPlusBet);
+							int player1WinningPerson = ThreeCardLogic.compareHands(theDealer.dealersHand, playerOne.hand);
+
+							//calculate pair plus bet in winning
+							playerOne.totalWinnings -= playerOne.pairPlusBet;
+							playerOne.totalWinnings += player1PairPlusWon;
+
+							//get pair plus bet if put down
+							if (!(player1PairPlusWager.getText().equals(""))) {
+								int player1PairPlusBet = Integer.parseInt(player1PairPlusWager.getText());
+								if (!((player1PairPlusBet < 5) || (player1PairPlusBet > 25))) {
+									playerOne.pairPlusBet = player1PairPlusBet;
+								}
+							} else {
+								playerTwo.pairPlusBet = 0;
+							}
 
 							String player1TypeHandMessage;
 							if (player1TypeHand == 0) {
@@ -657,17 +925,49 @@ public class ThreeCardPokerGame extends Application {
 							}
 
 							String player1PairPlusWonMessage = "Player one pair plus winning is " + player1PairPlusWon;
+							String player1WinningPersonMessage;
 
-							show2Message(
-									player1TypeHandMessage + " " + player2TypeHandMessage,
-									player1PairPlusWonMessage + " " + player2PairPlusWonMessage,
-									twoMessageWait);
+							if (player1WinningPerson == 0) {
+								player1WinningPersonMessage = "Tie between Dealer and Player One.";
+								//dealer didn't have queen or higher
+								//so return the bets
+								playerOne.totalWinnings = playerOne.totalWinnings + playerOne.anteBet;
+								playerOne.totalWinnings = playerOne.totalWinnings + playerOne.playBet;
+							} else if (player1WinningPerson == 1) {
+								player1WinningPersonMessage = "Player One lost to the dealer";
+								//nothing happens, lost money
+							} else {
+								player1WinningPersonMessage = "The Dealer lost to player one";
+								//player get double what they put for ante bet and play bet
+								playerOne.totalWinnings = playerOne.totalWinnings + (playerOne.anteBet * 2);
+								playerOne.totalWinnings = playerOne.totalWinnings + (playerOne.playBet * 2);
+							}
+
+							//check if player 2 played or folded and show message accordingly
+							if (player1Played) {
+								show3Message(
+										player1TypeHandMessage + " and " + player2TypeHandMessage,
+										player1PairPlusWonMessage + " and " + player2PairPlusWonMessage,
+										player1WinningPersonMessage,
+										threeMessageWait);
+								endOfRound(); //when one round is over
+							}
+
+							if (player1Folded) {
+								show2Message(
+										player1TypeHandMessage + " and " + player2TypeHandMessage,
+										player1PairPlusWonMessage + " and " + player2PairPlusWonMessage,
+										twoMessageWait);
+								endOfRound(); //when one round is over
+							}
+
 						} else {
 							//show only player 1 message
 							show2Message(
 									player2TypeHandMessage,
 									player2PairPlusWonMessage,
 									twoMessageWait);
+							endOfRound(); //when one round is over
 						}
 					} else {
 						//wait for player 1
@@ -678,6 +978,65 @@ public class ThreeCardPokerGame extends Application {
 				}
 			}
 		});
+	}
+
+	public void endOfRound() {
+		player1Winnings.setText("Wins: $" + playerOne.totalWinnings);
+		player2Winnings.setText("Wins: $" + playerTwo.totalWinnings);
+		dealerDealButton.setDisable(true);
+		player1PlayButton.setDisable(true);
+		player1FoldButton.setDisable(true);
+		player2PlayButton.setDisable(true);
+		player2FoldButton.setDisable(true);
+		player1Title.setDisable(false);
+		player2Title.setDisable(false);
+
+		theDealer.dealersHand.clear();
+		playerOne.hand.clear();
+		playerTwo.hand.clear();
+
+		PauseTransition wait = new PauseTransition(Duration.seconds(10));
+		wait.setOnFinished((e) -> {
+			dealerCard1ImageView.setImage(new Image("blue_back.jpg"));
+			dealerCard2ImageView.setImage(new Image("blue_back.jpg"));
+			dealerCard3ImageView.setImage(new Image("blue_back.jpg"));
+			player1Card1ImageView.setImage(new Image("blue_back.jpg"));
+			player1Card2ImageView.setImage(new Image("blue_back.jpg"));
+			player1Card3ImageView.setImage(new Image("blue_back.jpg"));
+			player2Card1ImageView.setImage(new Image("blue_back.jpg"));
+			player2Card2ImageView.setImage(new Image("blue_back.jpg"));
+			player2Card3ImageView.setImage(new Image("blue_back.jpg"));
+
+			player1AnteBets.clear();
+			player2AnteBets.clear();
+			player1PlayWager.clear();
+			player1PlayWager.clear();
+			player2PlayWager.clear();
+			player2PlayWager.clear();
+			player1PairPlusWager.clear();
+			player2PairPlusWager.clear();
+
+			if (player1Playing) {
+				player1Done = false;
+			} else {
+				player1Done = true;
+			}
+
+			if (player1Playing) {
+				player2Done = false;
+			} else {
+				player2Done = true;
+			}
+
+			player1Played = false;
+			player1Folded = false;
+			player2Played = false;
+			player2Folded = false;
+
+			dealerDealButton.setDisable(false);
+			updatePlayerStatus();
+		});
+		wait.play();
 	}
 
 	public void show1Message(String message1) {
@@ -735,7 +1094,7 @@ public class ThreeCardPokerGame extends Application {
 	}
 
 	public void showPlayer1Cards() {
-		if (player1Playing) {
+		if ((player1Playing) && (playerOne.hand.size() == 3)) {
 			player1Card1ImageView.setImage(new Image(playerOne.hand.get(0).value + String.valueOf(playerOne.hand.get(0).suit)+".jpg"));
 			player1Card2ImageView.setImage(new Image(playerOne.hand.get(1).value + String.valueOf(playerOne.hand.get(1).suit)+".jpg"));
 			player1Card3ImageView.setImage(new Image(playerOne.hand.get(2).value + String.valueOf(playerOne.hand.get(2).suit)+".jpg"));
@@ -743,7 +1102,7 @@ public class ThreeCardPokerGame extends Application {
 	}
 
 	public void showPlayer2Cards() {
-		if (player2Playing) {
+		if ((player2Playing) && (playerTwo.hand.size() == 3)){
 			player2Card1ImageView.setImage(new Image(playerTwo.hand.get(0).value + String.valueOf(playerTwo.hand.get(0).suit)+".jpg"));
 			player2Card2ImageView.setImage(new Image(playerTwo.hand.get(1).value + String.valueOf(playerTwo.hand.get(1).suit)+".jpg"));
 			player2Card3ImageView.setImage(new Image(playerTwo.hand.get(2).value + String.valueOf(playerTwo.hand.get(2).suit)+".jpg"));
@@ -753,8 +1112,10 @@ public class ThreeCardPokerGame extends Application {
 	public void updatePlayerStatus() {
 		if (player1Playing) {
 			player1Status.setText("Playing");
-			player1PlayButton.setDisable(false);
-			player1FoldButton.setDisable(false);
+			if (playerOne.hand.size() == 3) {
+				player1PlayButton.setDisable(false);
+				player1FoldButton.setDisable(false);
+			}
 			player1Status.setTooltip(new Tooltip("Player one is playing the game"));
 		} else {
 			player1Status.setText("Not Playing");
@@ -769,8 +1130,10 @@ public class ThreeCardPokerGame extends Application {
 
 		if (player2Playing) {
 			player2Status.setText("Playing");
-			player2PlayButton.setDisable(false);
-			player2FoldButton.setDisable(false);
+			if (playerTwo.hand.size() == 3) {
+				player2PlayButton.setDisable(false);
+				player2FoldButton.setDisable(false);
+			}
 			player2Status.setTooltip(new Tooltip("Player two is playing the game"));
 		} else {
 			player2Status.setText("Not Playing");
@@ -938,6 +1301,11 @@ public class ThreeCardPokerGame extends Application {
 		player2FoldButton.setFont(new Font(15));
 		player2FoldButton.autosize();
 		player2FoldButton.setTooltip(new Tooltip("Click to fold your cards. Your cards will compared with three card poker hands"));
+
+		player1PlayButton.setDisable(true);
+		player1FoldButton.setDisable(true);
+		player2PlayButton.setDisable(true);
+		player2FoldButton.setDisable(true);
 	}
 
 	public void setBackground() {
