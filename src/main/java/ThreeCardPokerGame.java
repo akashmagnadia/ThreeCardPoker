@@ -1,8 +1,5 @@
 import javafx.animation.PauseTransition;
 import javafx.application.Application;
-import javafx.application.Platform;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -78,22 +75,8 @@ public class ThreeCardPokerGame extends Application {
 	private Boolean player2Folded;
 	private Boolean player2Played;
 
-
 	private double twoMessageWait;
 	private double threeMessageWait;
-
-	private String player1StatusString;
-	private String player2StatusString;
-	private String player1PlayWagerString;
-	private String player2PlayWagerString;
-	private String player1AnteBetsString;
-	private String player2AnteBetsString;
-	private String player1PairPlusString;
-	private String player2PairPlusString;
-	private String player1WinningsString;
-	private String player2WinningsString;
-	private String messageString;
-	private String player2MessageString;
 
 	Menu menu;
 	MenuItem freshStart;
@@ -117,7 +100,7 @@ public class ThreeCardPokerGame extends Application {
 	public void start(Stage primaryStage) throws Exception {
 		primaryStage.setTitle("Let's Play Three Card Poker!! - made by Akash Magnadia");
 
-		HashMap<String, Scene> sceneMap = new HashMap<String, Scene>();
+		HashMap<String, Scene> sceneMap = new HashMap<>();
 
 		//both players start in the beginning of the game
 		player1Playing = true;
@@ -1047,9 +1030,7 @@ public class ThreeCardPokerGame extends Application {
 		messageBoard.setText(message1);
 
 		PauseTransition wait = new PauseTransition(Duration.seconds(waitTime));
-		wait.setOnFinished((e) -> {
-			messageBoard.setText(message2);
-		});
+		wait.setOnFinished((e) -> messageBoard.setText(message2));
 		wait.play();
 	}
 
@@ -1061,30 +1042,10 @@ public class ThreeCardPokerGame extends Application {
 			messageBoard.setText(message2);
 
 			PauseTransition wait2 = new PauseTransition(Duration.seconds(waitTime));
-			wait2.setOnFinished((e2) -> {
-				messageBoard.setText(message3);
-			});
+			wait2.setOnFinished((e2) -> messageBoard.setText(message3));
 			wait2.play();
 		});
 		wait.play();
-	}
-
-	public void showAllCards() {
-		dealerCard1ImageView.setImage(new Image(theDealer.dealersHand.get(0).value + String.valueOf(theDealer.dealersHand.get(0).suit)+".jpg"));
-		dealerCard2ImageView.setImage(new Image(theDealer.dealersHand.get(1).value + String.valueOf(theDealer.dealersHand.get(1).suit)+".jpg"));
-		dealerCard3ImageView.setImage(new Image(theDealer.dealersHand.get(2).value + String.valueOf(theDealer.dealersHand.get(2).suit)+".jpg"));
-
-		if (player1Playing) {
-			player1Card1ImageView.setImage(new Image(playerOne.hand.get(0).value + String.valueOf(playerOne.hand.get(0).suit)+".jpg"));
-			player1Card2ImageView.setImage(new Image(playerOne.hand.get(1).value + String.valueOf(playerOne.hand.get(1).suit)+".jpg"));
-			player1Card3ImageView.setImage(new Image(playerOne.hand.get(2).value + String.valueOf(playerOne.hand.get(2).suit)+".jpg"));
-		}
-
-		if (player2Playing) {
-			player2Card1ImageView.setImage(new Image(playerTwo.hand.get(0).value + String.valueOf(playerTwo.hand.get(0).suit)+".jpg"));
-			player2Card2ImageView.setImage(new Image(playerTwo.hand.get(1).value + String.valueOf(playerTwo.hand.get(1).suit)+".jpg"));
-			player2Card3ImageView.setImage(new Image(playerTwo.hand.get(2).value + String.valueOf(playerTwo.hand.get(2).suit)+".jpg"));
-		}
 	}
 
 	public void showDealersCards() {
@@ -1311,7 +1272,7 @@ public class ThreeCardPokerGame extends Application {
 	public void setBackground() {
 		if (showScene1) {
 			//setting the background
-			backgroundImage = new Image("Poker_table_background.jpg");
+			backgroundImage = new Image("Poker_Table_background.jpg");
 		} else {
 			//setting the background
 			backgroundImage = new Image("Poker_table_background2.png");
